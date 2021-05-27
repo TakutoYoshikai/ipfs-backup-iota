@@ -52,7 +52,7 @@ async function getMessages(seed) {
   messages = messages.map(message => {
     return message.data;
   });
-  messages.filter(message => {
+  messages = messages.filter(message => {
     const key = cryptico.publicKeyFromString(keyPair.pubKey);
     return key.verifyString(message.backup, message.sig);
   });
@@ -61,18 +61,21 @@ async function getMessages(seed) {
 
 async function sendPubKey(seed) {
   const keyPair = getKeyPair(seed);
-  return await sendMessage({ keyPair.pubKey }, keyPair.address);
+  return await sendMessage({ pubKey: keyPair.pubKey }, keyPair.address);
 }
 
 
 async function saveHashOfBackup(hash, seed) {
   const keyPair = getKeyPair(seed);
-  const sig = keyPair.signString(hash, "sha256");
+  const sig = keyPair.privKey.signString(hash, "sha256");
   return await sendMessage({ backup: hash, sig }, keyPair.address);
 }
 
 async function getNewestHashOfBackup(seed) {
   const messages = await getMessages(seed);
+  if (messages.length === 0) {
+    return null;
+  }
   const last = messages[messages.length - 1];
   return last.backup;
 }
@@ -80,4 +83,6 @@ async function getNewestHashOfBackup(seed) {
 module.exports = {
   saveHashOfBackup,
   getNewestHashOfBackup,
+  sendMessage,
+  getKeyPair,
 }
