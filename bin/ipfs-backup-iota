@@ -7,11 +7,11 @@ const {
   getKeyPair,
 } = require("../index");
 
-if (process.argv[2] === "register") {
-  saveHashOfBackup(process.argv[4], process.argv[3]);
-}
-
-if (process.argv[2] === "get") {
-  console.log(getNewestHashOfBackup(process.argv[3]));
-}
-
+(async () => {
+  if (process.argv[2] === "register") {
+    await saveHashOfBackup(process.argv[4], process.argv[3]);
+  }
+  if (process.argv[2] === "get") {
+    await console.log(getNewestHashOfBackup(process.argv[3]));
+  }
+})();
