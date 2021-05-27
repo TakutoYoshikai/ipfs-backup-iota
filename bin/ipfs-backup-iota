@@ -12,6 +12,6 @@ const {
     await saveHashOfBackup(process.argv[4], process.argv[3]);
   }
   if (process.argv[2] === "get") {
-    await console.log(getNewestHashOfBackup(process.argv[3]));
+    console.log(await getNewestHashOfBackup(process.argv[3]));
   }
 })();
