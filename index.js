@@ -1,6 +1,20 @@
 const { sendData, SingleNodeClient, Converter, retrieveData } = require("@iota/iota.js");
+const crypto = require("crypto");
+const cryptico = require("cryptico");
 
 const client = new SingleNodeClient("https://chrysalis-nodes.iota.org");
+
+
+function getKeyPair(seed) {
+  const privKey = cryptico.generateRSAKey(seed, 1024);
+  const pubKey = cryptico.publicKeyString(privKey);
+  const address = crypto.createHash("sha256").update(seed, "utf8").digest("hex").slice(0, 48);
+  return {
+    privKey,
+    pubKey,
+    address,
+  }
+}
 
 async function sendMessage(obj, id) {
   const index = Converter.utf8ToBytes(id);
@@ -9,7 +23,9 @@ async function sendMessage(obj, id) {
   return message.messageId;
 }
 
-async function getMessages(id) {
+async function getMessages(seed) {
+  const keyPair = getKeyPair(seed);
+  const id = keyPair.address;
   const index = Converter.utf8ToBytes(id);
   const found = await client.messagesFind(index);
   const messageIds = found.messageIds;
@@ -36,15 +52,27 @@ async function getMessages(id) {
   messages = messages.map(message => {
     return message.data;
   });
+  messages.filter(message => {
+    const key = cryptico.publicKeyFromString(keyPair.pubKey);
+    return key.verifyString(message.backup, message.sig);
+  });
   return messages;
 }
 
-async function saveHashOfBackup(hash, id) {
-  return await sendMessage({ backup: hash }, id);
+async function sendPubKey(seed) {
+  const keyPair = getKeyPair(seed);
+  return await sendMessage({ keyPair.pubKey }, keyPair.address);
 }
 
-async function getNewestHashOfBackup(id) {
-  const messages = await getMessages(id);
+
+async function saveHashOfBackup(hash, seed) {
+  const keyPair = getKeyPair(seed);
+  const sig = keyPair.signString(hash, "sha256");
+  return await sendMessage({ backup: hash, sig }, keyPair.address);
+}
+
+async function getNewestHashOfBackup(seed) {
+  const messages = await getMessages(seed);
   const last = messages[messages.length - 1];
   return last.backup;
 }
